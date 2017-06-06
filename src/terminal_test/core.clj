@@ -52,6 +52,16 @@
 (defn parse-int [s]
   (Integer. s))
 
+(def directions [
+  :left
+  :top-left
+  :top
+  :top-right
+  :right
+  :bottom-right
+  :bottom
+  :bottom-left])
+
 (defn check-neighbor [board cell direction]
  ; Without wrapping the edges are considered 'dead'
  (let
@@ -72,34 +82,22 @@
    ]
    (true? (board neighbor))))
 
-(defn alive-neighbors [board cell live-count count]
- (if (not= count 8)
-   (let
-     [
-       direction (case count
-         0 :left
-         1 :top-left
-         2 :top
-         3 :top-right
-         4 :right
-         5 :bottom-right
-         6 :bottom
-         7 :bottom-left)
-     ]
-     (alive-neighbors
-       board
-       cell
-       (if (check-neighbor board cell direction) (inc live-count) live-count)
-       (inc count))
-   )
-   live-count
- ))
+(defn alive-neighbors [board cell directions live-count]
+  (let [direction (peek directions)]
+  (if (nil? direction)
+    live-count
+    (alive-neighbors
+      board
+      cell
+      (pop directions)
+      (if (check-neighbor board cell direction) (inc live-count) live-count)))))
 
 (defn alive-next-generation [board cell]
  (let
    [
      alive (true? (board cell))
-     alive-neighbors-count (alive-neighbors board cell 0 0)
+     alive-neighbors-count
+      (alive-neighbors board cell directions 0)
    ]
    (if alive
      (case alive-neighbors-count
