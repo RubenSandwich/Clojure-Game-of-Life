@@ -8,16 +8,16 @@
 
 ; State/Screen utilities
 (defn screen-width [screen]
-  (- (first (s/get-size screen)) 1))
+  (dec (first (s/get-size screen))))
 
 (defn screen-height [screen]
-  (- (second (s/get-size screen)) 1))
+  (dec (second (s/get-size screen))))
 
 (defn last-row [state]
   ((state :board-size) :rows))
 
 (defn last-row-no-ui [state]
-  (- ((state :board-size) :rows) 1))
+  (dec ((state :board-size) :rows)))
 
 (defn last-col [state]
   ((state :board-size) :cols))
@@ -60,16 +60,16 @@
 
 ; State modification
 (defn next-generation [state]
-  (assoc state :generation (+ 1 (state :generation))))
+  (assoc state :generation (inc (state :generation))))
 
 (defn move-cursor [state direction]
   (assoc state :cursor
     (let [x ((state :cursor) :x) y ((state :cursor) :y)]
       (case direction
-        :right {:y y :x (if (= x (last-col state)) x (+ x 1))}
-        :left {:y y :x (if (= x 0) x (- x 1))}
-        :down {:y (if (= y (last-row-no-ui state)) y (+ y 1)) :x x}
-        :up {:y (if (= y 0) y (- y 1)) :x x}
+        :right {:y y :x (if (= x (last-col state)) x (inc x))}
+        :left {:y y :x (if (= x 0) x (dec x))}
+        :down {:y (if (= y (last-row-no-ui state)) y (inc y)) :x x}
+        :up {:y (if (= y 0) y (dec y)) :x x}
         (state :cursor)
       ))))
 
