@@ -203,8 +203,23 @@
         (str "board: " (first diffed) " next-board: " (second diffed))
       )))
 
+(defn update-history [newState state]
+  (let [diffed (data/diff (state :board) (newState :board))]
+    (assoc newState :history (conj (state :history) (first diffed)))))
+
 (defn next-generation [state]
-  (assoc state :generation (inc (state :generation))))
+  (-> state
+    (assoc :generation (inc (state :generation)))
+    (assoc :board (next-generation-board (state :board)))
+    (update-history state)))
+
+(defn prev-generation [state]
+  (if (zero? (state :generation))
+    state
+    (-> state
+      (assoc :generation (dec (state :generation)))
+      (assoc :board (merge (state :board) (peek (state :history))))
+      (assoc :history (pop (state :history))))))
 
 (defn move-cursor [state direction]
   (assoc state :cursor
@@ -236,8 +251,7 @@
         board-index (make-board-index x y)
         cell ((state :board) board-index)
       ]
-      (merge (state :board) {board-index (not cell)})
-      )))
+      (merge (state :board) {board-index (not cell)}))))
 
 
 ; Drawing
@@ -289,15 +303,9 @@
       (:up :down :left :right) (draw-loop screen (move-cursor state key))
       \space (draw-loop screen (toggle-cell state))
       \p (draw-loop screen (toggle-pause state))
+      \b (draw-loop screen (prev-generation state))
       \q () ; Stops the recursion and therefore the app
-      (draw-loop screen
-        (assoc
-          (next-generation state)
-          :board
-          (next-generation-board (state :board)))
-      )
-    ))
-  )
+      (draw-loop screen (next-generation state)))))
 
 ; Init
 (defn main []
