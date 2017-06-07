@@ -3,8 +3,7 @@
   (:require
     [lanterna.screen :as s]
     [clojure.string :as str]
-    [clojure.data :as data]
-    ))
+    [clojure.data :as data]))
 
 ; https://sjl.bitbucket.io/clojure-lanterna/reference/#lanternaterminalclear
 
@@ -34,8 +33,7 @@
   (str x "," y))
 
 (defn build-inital-board [state]
-  (let
-    [
+  (let [
       cols (last-col state)
       rows (last-row-no-ui state)
       area (* rows cols)
@@ -46,8 +44,7 @@
           (if (>= %1 cols) (mod %1 cols) %1)
           (mod %1 rows))
         (range area))
-      (repeat false))
-    ))
+      (repeat false))))
 
 (defn parse-int [s]
   (Integer. s))
@@ -64,8 +61,7 @@
 
 (defn check-neighbor [board cell direction]
  ; Without wrapping the edges are considered 'dead'
- (let
-   [
+ (let [
      cell-vec (str/split cell #",")
      x (parse-int (first cell-vec))
      y (parse-int (second cell-vec))
@@ -90,7 +86,9 @@
       board
       cell
       (pop directions)
-      (if (check-neighbor board cell direction) (inc live-count) live-count)))))
+      (if (check-neighbor board cell direction)
+        (inc live-count)
+        live-count)))))
 
 (defn alive-next-generation [board cell]
  (let
@@ -108,8 +106,7 @@
      (case alive-neighbors-count
        3 true ; 4. Reproduction
        false ; 5. Stay dead
-     )
-   )))
+     ))))
 
 
 ; Inital State
@@ -164,8 +161,7 @@
     ]
       (if (nil? (first diffed))
         "Block Still Life Test: Passed"
-        (str "board: " (first diffed) " next-board: " (second diffed))
-      )))
+        (str "board: " (first diffed) " next-board: " (second diffed)))))
 
 (defn test-two []
   (let
@@ -200,8 +196,7 @@
     ]
       (if (nil? (first diffed))
         "Blinker Oscillators Test: Passed"
-        (str "board: " (first diffed) " next-board: " (second diffed))
-      )))
+        (str "board: " (first diffed) " next-board: " (second diffed)))))
 
 (defn update-history [newState state]
   (let [diffed (data/diff (state :board) (newState :board))]
@@ -229,8 +224,7 @@
         :left {:y y :x (if (= x 0) x (dec x))}
         :down {:y (if (= y (last-row-no-ui state)) y (inc y)) :x x}
         :up {:y (if (= y 0) y (dec y)) :x x}
-        (state :cursor)
-      ))))
+        (state :cursor)))))
 
 (defn pause [state]
   (assoc state :paused true))
@@ -244,8 +238,7 @@
 
 (defn toggle-cell [state]
   (assoc state :board
-    (let
-      [
+    (let [
         x ((state :cursor) :x)
         y ((state :cursor) :y)
         board-index (make-board-index x y)
@@ -261,17 +254,13 @@
       live-cell
       (filter #(second %) (state :board))
     ]
-    (let
-      [
+    (let [
         loc (first live-cell)
         loc-vec (str/split loc #",")
         x (parse-int (first loc-vec))
         y (parse-int (second loc-vec))
       ]
-        (s/put-string screen x y live-cell-char)
-      )
-    )
-)
+      (s/put-string screen x y live-cell-char))))
 
 (defn draw-ui
   [screen state]
@@ -281,8 +270,7 @@
         "Paused: 'p' to play"
         "Playing: 'p' to pause")
       " - Generation: " (state :generation)
-      " - Controls: 'arrow keys' + 'enter'")
-  ))
+      " - Controls: 'arrow keys' + 'enter'")))
 
 (defn draw-loop [screen state]
   (s/clear screen)
@@ -307,14 +295,14 @@
       \q () ; Stops the recursion and therefore the app
       (draw-loop screen (next-generation state)))))
 
+
 ; Init
 (defn main []
   (let [screen (s/get-screen :unix)]
     (s/in-screen screen
       (draw-loop screen
         (let [state (update-board-size screen inital-state)]
-          (assoc state :board (build-inital-board state)))
-      ))))
+          (assoc state :board (build-inital-board state)))))))
 
 (defn -main [& args]
     (main))
