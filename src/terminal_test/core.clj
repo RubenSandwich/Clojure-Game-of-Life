@@ -5,6 +5,18 @@
     [clojure.string :as str]
     [clojure.data :as data]))
 
+; TODO
+; 1. Use a loop instead of a recursion for the draw loop
+; DONE - 2. Implement a popultation count
+; 3. Implement wrapping
+; 4. When not wrapping the board should be extended over the edges by 2,
+; so the board seems infinite
+; 5. Create a help screen
+; 6. Allow slowing down and speeding up the timeout
+; 7. Write tests
+; 8. Listen for resize events and adjust board size
+; 9. Pause when moving around the board
+
 ; https://sjl.bitbucket.io/clojure-lanterna/reference/#lanternaterminalclear
 
 ; State/Screen utilities
@@ -112,6 +124,7 @@
 ; Inital State
 (def inital-state {
   :generation 0
+  :population 0
   :board {}
   :board-size {:cols 0 :rows 0}
   :cursor {:x 0 :y 0}
@@ -122,6 +135,12 @@
 
 
 ; State modification
+(defn calculate-population [board]
+  (reduce-kv
+    (fn [s _ v]
+      (if (true? v) (inc s) s))
+    0 board))
+
 (defn next-generation-board [board]
   (reduce-kv
     (fn [m k _]
@@ -203,18 +222,22 @@
     (assoc newState :history (conj (state :history) (first diffed)))))
 
 (defn next-generation [state]
+  (let [newBoard (next-generation-board (state :board))]
   (-> state
     (assoc :generation (inc (state :generation)))
-    (assoc :board (next-generation-board (state :board)))
-    (update-history state)))
+    (assoc :board newBoard)
+    (assoc :population (calculate-population newBoard))
+    (update-history state))))
 
 (defn prev-generation [state]
   (if (zero? (state :generation))
     state
-    (-> state
-      (assoc :generation (dec (state :generation)))
-      (assoc :board (merge (state :board) (peek (state :history))))
-      (assoc :history (pop (state :history))))))
+    (let [newBoard (merge (state :board) (peek (state :history)))]
+      (-> state
+        (assoc :generation (dec (state :generation)))
+        (assoc :board newBoard)
+        (assoc :population (calculate-population newBoard))
+        (assoc :history (pop (state :history)))))))
 
 (defn move-cursor [state direction]
   (assoc state :cursor
@@ -237,14 +260,18 @@
     {:cols (screen-width screen) :rows (screen-height screen)}))
 
 (defn toggle-cell [state]
-  (assoc state :board
-    (let [
-        x ((state :cursor) :x)
-        y ((state :cursor) :y)
-        board-index (make-board-index x y)
-        cell ((state :board) board-index)
-      ]
-      (merge (state :board) {board-index (not cell)}))))
+  (let [
+      x ((state :cursor) :x)
+      y ((state :cursor) :y)
+      board-index (make-board-index x y)
+      cell ((state :board) board-index)
+      newCell (not cell)
+      population (state :population)
+    ]
+    (-> state
+      (assoc :board (merge (state :board) {board-index newCell}))
+      (assoc :population
+        (if (true? newCell) (inc population) (dec population))))))
 
 
 ; Drawing
@@ -270,7 +297,7 @@
         "Paused: 'p' to play"
         "Playing: 'p' to pause")
       " - Generation: " (state :generation)
-      " - Controls: 'arrow keys' + 'enter'")))
+      " - Population: " (state :population))))
 
 (defn draw-loop [screen state]
   (s/clear screen)
