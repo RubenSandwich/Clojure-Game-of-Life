@@ -6,7 +6,7 @@
     [clojure.data :as data]))
 
 ; TODO
-; 1. Use a loop instead of a recursion for the draw loop
+; 1. Use a loop instead of a recursion for the draw loop?
 ; DONE - 2. Implement a popultation count
 ; 3. Implement wrapping
 ; 4. When not wrapping the board should be extended over the edges by 2,
@@ -15,7 +15,7 @@
 ; 6. Allow slowing down and speeding up the timeout
 ; 7. Write tests
 ; 8. Listen for resize events and adjust board size
-; 9. Pause when moving around the board
+; DONE = 9. Pause when moving around the board
 
 ; https://sjl.bitbucket.io/clojure-lanterna/reference/#lanternaterminalclear
 
@@ -147,6 +147,9 @@
       (assoc m k (alive-next-generation board k)))
     {} board))
 
+(defn pause [state]
+  (assoc state :paused true))
+
 (defn test-one []
   (let
     [
@@ -237,20 +240,20 @@
         (assoc :generation (dec (state :generation)))
         (assoc :board newBoard)
         (assoc :population (calculate-population newBoard))
-        (assoc :history (pop (state :history)))))))
+        (assoc :history (pop (state :history)))
+        (pause)))))
 
 (defn move-cursor [state direction]
-  (assoc state :cursor
-    (let [x ((state :cursor) :x) y ((state :cursor) :y)]
-      (case direction
-        :right {:y y :x (if (= x (last-col state)) x (inc x))}
-        :left {:y y :x (if (= x 0) x (dec x))}
-        :down {:y (if (= y (last-row-no-ui state)) y (inc y)) :x x}
-        :up {:y (if (= y 0) y (dec y)) :x x}
-        (state :cursor)))))
-
-(defn pause [state]
-  (assoc state :paused true))
+  (-> state
+    (assoc :cursor
+      (let [x ((state :cursor) :x) y ((state :cursor) :y)]
+        (case direction
+          :right {:y y :x (if (= x (last-col state)) x (inc x))}
+          :left {:y y :x (if (= x 0) x (dec x))}
+          :down {:y (if (= y (last-row-no-ui state)) y (inc y)) :x x}
+          :up {:y (if (= y 0) y (dec y)) :x x}
+          (state :cursor))))
+    (pause)))
 
 (defn toggle-pause [state]
   (assoc state :paused (not (state :paused))))
@@ -271,7 +274,8 @@
     (-> state
       (assoc :board (merge (state :board) {board-index newCell}))
       (assoc :population
-        (if (true? newCell) (inc population) (dec population))))))
+        (if (true? newCell) (inc population) (dec population)))
+      (pause))))
 
 
 ; Drawing
