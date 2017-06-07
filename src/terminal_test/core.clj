@@ -12,7 +12,8 @@
 ; 4. When not wrapping the board should be extended over the edges by 2,
 ; so the board seems infinite
 ; 5. Create a help screen
-; 6. Allow slowing down and speeding up the timeout
+; DONE - 6. Allow slowing down and speeding up the timeout
+; 6a. Show in FPS instead of ms?
 ; 7. Write tests
 ; 8. Listen for resize events and adjust board size
 ; DONE = 9. Pause when moving around the board
@@ -39,7 +40,7 @@
   [((state :cursor) :x) ((state :cursor) :y)])
 
 (defn timeout [state]
-  (if (state :paused) {} {:timeout 250}))
+  (if (state :paused) {} {:timeout (state :generation-time)}))
 
 (defn make-board-index [x y]
   (str x "," y))
@@ -129,7 +130,8 @@
   :board-size {:cols 0 :rows 0}
   :cursor {:x 0 :y 0}
   :history []
-  :paused true})
+  :paused true
+  :generation-time 250})
 
 (def live-cell-char "▓")
 
@@ -262,6 +264,27 @@
   (assoc state :board-size
     {:cols (screen-width screen) :rows (screen-height screen)}))
 
+(def generation-time-change-interval 50)
+(def max-generation-time-change-interval 1000)
+
+(defn update-generation-time [state direction]
+  (let [
+    new-generation-time
+    (if (or
+          (and
+            (= direction :down)
+            (= generation-time-change-interval (state :generation-time)))
+          (and
+            (= direction :up)
+            (= max-generation-time-change-interval (state :generation-time))))
+      (state :generation-time)
+      (if (= direction :up)
+        (+ (state :generation-time) generation-time-change-interval)
+        (- (state :generation-time) generation-time-change-interval)
+      ))
+    ]
+    (assoc state :generation-time new-generation-time)))
+
 (defn toggle-cell [state]
   (let [
       x ((state :cursor) :x)
@@ -298,9 +321,14 @@
   (s/put-string screen 0 (last-row state)
     (str
       (if (state :paused)
-        "Paused: 'p' to play"
-        "Playing: 'p' to pause")
+        "PAUSED"
+        "ACTIVE")
       " - Generation: " (state :generation)
+      " - Interval: "
+        (if (= max-generation-time-change-interval (state :generation-time))
+          (str (state :generation-time) "s")
+          (str (state :generation-time) "ms")
+        )
       " - Population: " (state :population))))
 
 (defn draw-loop [screen state]
@@ -320,6 +348,8 @@
   (let [key (s/get-key-blocking screen (timeout state))]
     (case key
       (:up :down :left :right) (draw-loop screen (move-cursor state key))
+      (\= \+) (draw-loop screen (update-generation-time state :up))
+      (\- \_) (draw-loop screen (update-generation-time state :down))
       \space (draw-loop screen (toggle-cell state))
       \p (draw-loop screen (toggle-pause state))
       \b (draw-loop screen (prev-generation state))
