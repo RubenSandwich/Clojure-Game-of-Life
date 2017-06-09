@@ -14,7 +14,7 @@
 ; 5. Create a help screen
 ; DONE - 6. Allow slowing down and speeding up the timeout
 ; 6a. Show in FPS instead of ms?
-; 7. Write tests
+; DONE - 7. Write tests
 ; 8. Listen for resize events and adjust board size
 ; DONE = 9. Pause when moving around the board
 
@@ -152,76 +152,6 @@
 (defn pause [state]
   (assoc state :paused true))
 
-(defn test-one []
-  (let
-    [
-    ; Block Still Life Test
-    ; OXX -> OXX
-    ; OXX -> OXX
-    ; OOO -> OOO
-      board {
-        "0,0" false
-        "1,0" true
-        "2,0" true
-        "0,1" false
-        "1,1" true
-        "2,1" true
-        "0,2" false
-        "1,2" false
-        "2,2" false
-      }
-      expected-board {
-        "0,0" false
-        "1,0" true
-        "2,0" true
-        "0,1" false
-        "1,1" true
-        "2,1" true
-        "0,2" false
-        "1,2" false
-        "2,2" false
-      }
-      diffed (data/diff (next-generation-board board) expected-board)
-    ]
-      (if (nil? (first diffed))
-        "Block Still Life Test: Passed"
-        (str "board: " (first diffed) " next-board: " (second diffed)))))
-
-(defn test-two []
-  (let
-    [
-    ; Blinker Oscillators Test
-    ; OXO -> OOO
-    ; OXO -> XXX
-    ; OXO -> OOO
-      board {
-        "0,0" false
-        "1,0" true
-        "2,0" false
-        "0,1" false
-        "1,1" true
-        "2,1" false
-        "0,2" false
-        "1,2" true
-        "2,2" false
-      }
-      expected-board {
-        "0,0" false
-        "1,0" false
-        "2,0" false
-        "0,1" true
-        "1,1" true
-        "2,1" true
-        "0,2" false
-        "1,2" false
-        "2,2" false
-      }
-      diffed (data/diff (next-generation-board board) expected-board)
-    ]
-      (if (nil? (first diffed))
-        "Blinker Oscillators Test: Passed"
-        (str "board: " (first diffed) " next-board: " (second diffed)))))
-
 (defn update-history [newState state]
   (let [diffed (data/diff (state :board) (newState :board))]
     (assoc newState :history (conj (state :history) (first diffed)))))
@@ -333,17 +263,9 @@
 
 (defn draw-loop [screen state]
   (s/clear screen)
-
-  ; Tests
-  ; (s/put-string screen 0 1
-  ;   (str (test-one)))
-  ; (s/put-string screen 0 2
-  ;   (str (test-two)))
-
   (s/move-cursor screen (cursor-to-vector state))
   (draw-board screen state)
   (draw-ui screen state)
-
   (s/redraw screen)
   (let [key (s/get-key-blocking screen (timeout state))]
     (case key
